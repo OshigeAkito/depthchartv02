@@ -1,0 +1,136 @@
+{   
+    
+    "dataRoles": [
+        {
+            "displayName": "Columns",
+            "name": "columns",
+            "kind": "Grouping"
+        }
+        ,
+        {
+            "displayName": "Table Values",
+            "name": "tablevalues",
+            "kind": "Measure"
+        }
+        ,
+        {
+            "displayName": "First Vertical Chart",
+            "name": "measure1",
+            "kind": "Measure"
+        }
+        ,
+        {
+            "displayName": "Second Vertical Chart",
+            "name": "measure2",
+            "kind": "Measure"
+        }
+        ,
+        {
+            "displayName": "Third Vertical Chart",
+            "name": "measure3",
+            "kind": "Measure"
+        }
+        ,
+        {
+            "displayName": "Stack Group",
+            "name": "stackgroup",
+            "kind": "Measure"
+        }
+        ,
+        {
+            "displayName": "Stack Measure",
+            "name": "stackmeasure",
+            "kind": "Measure"
+        }
+    ],
+    "objects": {
+    },
+    "dataViewMappings": [
+        {   
+            "conditions": [
+                {
+                    "columns": {
+                        "max": 1
+                    }
+                    ,
+                    "tablevalues": {
+                        "max": 5
+                    }
+                    ,
+                    "measure1": {
+                        "max": 2
+                    }
+                    ,
+                    "measure2": {
+                        "max": 1
+                    }
+                    ,
+                    "measure3": {
+                        "max": 1
+                    }
+                    ,
+                    "stackgroup": {
+                        "max": 1
+                    }
+                    ,
+                    "stackmeasure": {
+                        "max": 1
+                    }
+                }
+            ],
+            "table": {
+                "rows": {
+                    "select": [
+                        {
+                            "for": {
+                                "in": "columns"
+                            },
+                            
+                            "dataReductionAlgorithm": {
+                                "top": {
+                                    "count": 2000
+                                }
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "tablevalues"
+                            }
+                        }
+                    ]
+                }
+            },
+            "categorical": {
+                "categories": {
+                    "for": { 
+                        "in": "columns" 
+                    }
+                },
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "measure1"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "measure2"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "measure3"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "stackmeasure"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
