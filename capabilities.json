@@ -104,7 +104,12 @@
                 "categories": {
                     "for": { 
                         "in": "columns" 
-                    }
+                    },
+                    "dataReductionAlgorithm": {
+                        "window": {
+                            "count": 2000
+                        }
+                    }  
                 },
                 "values": {
                     "select": [
@@ -128,7 +133,12 @@
                                 "to": "stackmeasure"
                             }
                         }
-                    ]
+                    ],    
+                    "dataReductionAlgorithm": {
+                        "top": {
+                            "count": 2000
+                        }
+                    }
                 }
             }
         }

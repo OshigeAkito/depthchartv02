@@ -25,22 +25,16 @@ import { axisLeft, descending } from "d3";
 import { MAX_VALUE } from "powerbi-visuals-utils-typeutils/lib/double";
 import { dataRoleHelper } from "powerbi-visuals-utils-dataviewutils";
 
+import { logExceptions } from "./debugger"
+
 
 interface verticalLine {
-    xscale: Date,
-    yscale: number,
-    ysecondscale: number,
-    ythirdscale: number,
-    yfourthscale: number,
+    xscale: number,
+    measure1?: number,
+    measure2?: number,
+    measure3?: number,
+    measure4?: number,
 }
-
-// interface stackBar {
-//     group: string,
-//     subgroup: string,
-//     stackmeasure: number,
-// }
-
-
 
 export class Visual implements IVisual {
 
@@ -76,9 +70,11 @@ export class Visual implements IVisual {
         // const measure3 = this.extractDataRoleData(index, "measure3")   
     }
 
+    @logExceptions()
     public update(options: VisualUpdateOptions) {
         this.settings = Visual.parseSettings(options && options.dataViews && options.dataViews[0]);
             this.container.selectAll('*').remove();
+                ;
     
             let dataViews = options.dataViews;    
             console.log('Test 1: Valid data view...');
@@ -99,19 +95,51 @@ export class Visual implements IVisual {
             let table = dataViews[0].table;
             let categorical = dataViews[0].categorical;
 
-            let data: verticalLine[] = categorical.categories[0].values.map(
-                (cat, idx) => (
-                    {
-                        xscale: <Date> cat,
-                        yscale: <number> categorical.values[0].values[idx],
-                        ysecondscale: <number> categorical.values[1].values[idx],
-                        ythirdscale: <number> categorical.values[2].values[idx],
-                        yfourthscale: <number> categorical.values[3].values[idx],
-                    }
-                )
-            );
-            
+            let test_data: verticalLine[] = categorical.categories[0].values.map(
+                (category, idx) => { 
 
+                    const x_value = {
+                        xscale: <number> category
+                    }
+
+                    const field_name = categorical.values.map(x => Object.keys(x.source.roles)).flat()
+                    const map_y = categorical.values.map(x => x.values[idx])
+                    const y_value = field_name.map((name , idx) => ({[name]: map_y[idx]}))
+
+                    // return{
+                    //     x_value,
+                    //     y_value
+                    // }
+                        for( let i = 0; i <= y_value.length; i++){
+                            Object.assign(x_value, y_value[i])
+                        } 
+
+                    return x_value
+                }
+            );
+
+            test_data = Object.values(test_data).sort((first,second) => {
+                return first.xscale - second.xscale;
+            });
+            
+        //    console.log(test_data)
+
+
+            // let data: verticalLine[] = categorical.categories[0].values.map(
+            //     (category, idx) => { 
+
+            //         return{ 
+            //             xscale: <Date> category,
+            //             measure1: <number> categorical.values[0].values[idx],
+            //             measure2:<number> categorical.values[1].values[idx],
+            //             measure3: <number> categorical.values[2].values[idx],
+            //             measure4: <number> categorical.values[3].values[idx],
+            //         }
+            //     }
+            // );
+
+            // console.log(data)
+        
             var stackBar = this.container
                 .append('div')
                     .attr('class', 'stackBar')
@@ -208,9 +236,22 @@ export class Visual implements IVisual {
                 .append('div')
                     .attr('class', 'gcontainer')
 
-            var x = d3.scaleTime()
-                .domain(d3.extent(data, function(d) { return d.xscale; }))
-                .range([ 0, height]);
+            // var x = d3.scaleTime()
+            //     .domain(d3.extent(data, function(d) { return d.xscale; }))
+            //     .range([ 0, height]);
+
+            // var x = d3.scaleBand()
+            //     .rangeRound([0, height]);
+
+            // x.domain(test_data.map(function(d) { return d.xscale}))
+
+            var x = d3.scaleLinear()
+                .domain([0, d3.max(test_data, function(d) { return +d.xscale; })])
+                .range([0, height]);
+            
+
+            // console.log( d3.max(test_data, function(d) { return +d.xscale; }))
+            console.log( test_data)
 
             var svgticks1label = categorical.values[0].source.displayName;
             var svgticks2label = categorical.values[1].source.displayName;
@@ -234,17 +275,17 @@ export class Visual implements IVisual {
             var porpotionySvg =  parseInt(d3.select(".left").style("width")) - margin.right
                   
             var svgY = d3.scaleLinear()
-                .domain([0, d3.max(data, function(d) { return +d.yscale; })])
+                .domain([0, d3.max(test_data, function(d) { return +d.measure1; })])    
                 .range([ 0, porpotionySvg - margin.right]);
 
             var svgYSecond = d3.scaleLinear()
-                .domain([0, d3.max(data, function(d) { return +d.ysecondscale; })])
+                .domain([0, d3.max(test_data, function(d) { return +d.measure2; })])
                 .range([ 0, porpotionySvg - margin.right]);
 
             var svgticks1 = svg
                 .append('g')
                     .attr('transform',
-                        'translate(' + margin.left + ',' + headerHeight * .85 + ')')
+                        'translate(' + margin.left  + ',' + headerHeight * .85 + ')')
             
             svgticks1.append('g')
                     .call(d3.axisTop(svgY)
@@ -291,23 +332,23 @@ export class Visual implements IVisual {
                 .attr("stroke","white");
 
             svggraph.append('path')
-                .datum(data)
+                .datum(test_data)
                     .attr('fill', 'none')
                     .attr('stroke', 'red')
                     .attr('stroke-dasharray', 4)
                     .attr('d', d3.line<verticalLine>()
                         .y(function(d) { return x(d.xscale) })
-                        .x(function(d) { return svgY(d.yscale) })
+                        .x(function(d) { return svgY(d.measure1) })
                     );
             
             svggraph.append('path')
-                .datum(data)
+                .datum(test_data)
                     .attr('fill', 'none')
                     .attr('stroke', '#008080')
                     .attr('stroke-width', 1.5)
                     .attr('d', d3.line<verticalLine>()
                         .y(function(d) { return x(d.xscale) })
-                        .x(function(d) { return svgYSecond(d.ysecondscale) })
+                        .x(function(d) { return svgYSecond(d.measure2) })
                     );
             
             /////////////// SVGSecond /////////////////
@@ -328,7 +369,7 @@ export class Visual implements IVisual {
             var porpotionySvgSecond =  parseInt(d3.select(".middle").style("width")) - margin.right
             
             var svgSecondY = d3.scaleLinear()
-                .domain([0, d3.max(data, function(d) { return +d.ythirdscale; })])
+                .domain([0, d3.max(test_data, function(d) { return +d.measure3; })])
                 .range([ 0, porpotionySvgSecond - margin.right]);
 
             var svgSecondticks1 = svgSecond
@@ -354,13 +395,13 @@ export class Visual implements IVisual {
                         'translate(' + margin.left + ',' + headerHeight + ')');
                 
             svggraph.append('path')
-                .datum(data)
+                .datum(test_data)
                     .attr('fill', 'none')
                     .attr('stroke', 'black')
                     .attr('stroke-width', 1.5)
                     .attr('d', d3.line<verticalLine>()
                         .y(function(d) { return x(d.xscale) })
-                        .x(function(d) { return svgSecondY(d.ythirdscale) })
+                        .x(function(d) { return svgSecondY(d.measure3) })
                     );
             
             /////////////// SVGThird /////////////////
@@ -382,7 +423,7 @@ export class Visual implements IVisual {
             var porpotionySvgThird =  parseInt(d3.select(".middle2").style("width")) - margin.right
 
             var svgThirdY = d3.scaleLinear()
-                .domain([0, d3.max(data, function(d) { return +d.yfourthscale; })])
+                .domain([0, d3.max(test_data, function(d) { return +d.measure4; })])
                 .range([ 0, porpotionySvgThird - margin.right]);
 
             var svgThirdtick1 = svgThird
@@ -408,13 +449,13 @@ export class Visual implements IVisual {
                         'translate(' + margin.left + ',' + headerHeight + ')');
 
             svggraph.append('path')
-                .datum(data)
+                .datum(test_data)
                     .attr('fill', 'none')
                     .attr('stroke', 'blue')
                     .attr('stroke-width', 1.5)
                     .attr('d', d3.line<verticalLine>()
                         .y(function(d) { return x(d.xscale) })
-                        .x(function(d) { return svgThirdY(d.yfourthscale) })
+                        .x(function(d) { return svgThirdY(d.measure4) })
                     );
             
             /////////////// SVGFourth /////////////////
@@ -436,7 +477,7 @@ export class Visual implements IVisual {
             var porpotionySvgfourth =  parseInt(d3.select(".right").style("width")) - margin.right
 
             var svgFourthY = d3.scaleLinear()
-                .domain([0, d3.max(data, function(d) { return +d.yfourthscale; })])
+                .domain([0, d3.max(test_data, function(d) { return +d.measure4; })])
                 .range([ 0, porpotionySvgfourth - margin.right]);
 
             var svgFourthtick1 = svgFourth
@@ -462,13 +503,13 @@ export class Visual implements IVisual {
                         'translate(' + margin.left + ',' + headerHeight + ')');
 
             svggraph.append('path')
-                .datum(data)
+                .datum(test_data)
                     .attr('fill', 'none')
                     .attr('stroke', 'blue')
                     .attr('stroke-width', 1.5)
                     .attr('d', d3.line<verticalLine>()
                         .y(function(d) { return x(d.xscale) })
-                        .x(function(d) { return svgThirdY(d.yfourthscale) })
+                        .x(function(d) { return svgThirdY(d.measure4) })
                     );
     }
 
